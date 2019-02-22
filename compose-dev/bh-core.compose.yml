@@ -1,0 +1,14 @@
+version: '3'
+services:
+  bh-core:
+    build:
+      dockerfile: Dockerfile-dev
+    image: tispr/bh-core:dev
+    ports:
+      - "33006:5858"
+    volumes:
+      - ../bh-core:/src/app
+    entrypoint:
+      - node
+      - --inspect=0.0.0.0:5858
+      - server/server.js

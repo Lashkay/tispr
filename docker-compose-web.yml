@@ -1,0 +1,163 @@
+version: '3'
+services:
+  mongo:
+    image: mongo:3.6.8
+    ports:
+      - "27018:27017"
+    volumes:
+      - data:/data/db
+    networks:
+      - bh-net
+    command: --smallfiles
+
+  elasticsearch:
+    image: elasticsearch:5.5.1
+    ports:
+      - "9201:9200"
+      - "9301:9300"
+    volumes:
+      - elastic-data:/usr/share/elasticsearch/data
+    networks:
+      - bh-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9201"]
+
+  redis:
+    image: redis:4.0.10
+    ports:
+      - "6379:6379"
+    networks:
+      - bh-net
+
+  sqs:
+    image: 504788118775.dkr.ecr.us-west-2.amazonaws.com/fake-sqs:${BRANCH_NAME}
+    ports:
+      - "9324:9324"
+    networks:
+      - bh-net
+
+  mongodb-scripts:
+    image: 504788118775.dkr.ecr.us-west-2.amazonaws.com/mongodb-scripts:${BRANCH_NAME}
+    networks:
+      - bh-net
+    depends_on:
+      - mongo
+
+  bh-core:
+    image: 504788118775.dkr.ecr.us-west-2.amazonaws.com/bh-core:${BRANCH_NAME}
+    ports:
+      - "3006:8080"
+    networks:
+      - bh-net
+    depends_on:
+      - mongo
+      - bh-notifications
+
+  bh-drive:
+    image: 504788118775.dkr.ecr.us-west-2.amazonaws.com/bh-drive:${BRANCH_NAME}
+    ports:
+      - "3000:8080"
+    volumes:
+      - upload:/src/app/upload
+    networks:
+      - bh-net
+    depends_on:
+      - mongo
+
+  bh-notifications:
+    image: 504788118775.dkr.ecr.us-west-2.amazonaws.com/bh-notifications:${BRANCH_NAME}
+    ports:
+      - "3002:8080"
+    networks:
+      - bh-net
+    depends_on:
+      - mongo
+
+  bh-explore:
+    image: 504788118775.dkr.ecr.us-west-2.amazonaws.com/bh-explore:${BRANCH_NAME}
+    ports:
+      - "3001:8080"
+    networks:
+      - bh-net
+    depends_on:
+      - mongo
+      - sqs
+      - elasticsearch
+      - bh-drive
+    command: ["./node_modules/.bin/wait-for-it", "elasticsearch:9200", "-t", "120", "--", "npm", "start"]
+
+  bh-people:
+    image: 504788118775.dkr.ecr.us-west-2.amazonaws.com/bh-people:${BRANCH_NAME}
+    ports:
+      - "3005:8080"
+    networks:
+      - bh-net
+    depends_on:
+      - mongo
+      - redis
+
+  bh-worker:
+    image: 504788118775.dkr.ecr.us-west-2.amazonaws.com/bh-worker:${BRANCH_NAME}
+    networks:
+      - bh-net
+    depends_on:
+      - sqs
+      - bh-explore
+      - bh-notifications
+      - bh-people
+
+  bh-api:
+    image: 504788118775.dkr.ecr.us-west-2.amazonaws.com/bh-api:${BRANCH_NAME}
+    ports:
+      - "8080:8080"
+    networks:
+      - bh-net
+    depends_on:
+      - mongo
+      - redis
+      - bh-drive
+      - bh-notifications
+      - bh-explore
+      - bh-core
+
+  bh-admin:
+    image: 504788118775.dkr.ecr.us-west-2.amazonaws.com/bh-admin:${BRANCH_NAME}
+    ports:
+      - "8180:8080"
+    networks:
+      - bh-net
+    depends_on:
+      - mongo
+      - sqs
+      - bh-drive
+      - bh-notifications
+      - bh-explore
+      - bh-core
+
+  bh-admin-client:
+    build: ../bh-admin-client
+    image: 504788118775.dkr.ecr.us-west-2.amazonaws.com/bh-admin-client:${BRANCH_NAME}
+    ports:
+      - "7100:80"
+    networks:
+      - bh-net
+    depends_on:
+      - bh-admin
+
+  web-client:
+    build: ../web-client
+    image: 504788118775.dkr.ecr.us-west-2.amazonaws.com/web-client:${BRANCH_NAME}
+    ports:
+      - "7000:80"
+    networks:
+      - bh-net
+    depends_on:
+      - bh-api
+
+volumes:
+  upload:
+  data:
+  elastic-data:
+
+networks:
+  bh-net:

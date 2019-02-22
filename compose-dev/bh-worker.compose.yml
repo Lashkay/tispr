@@ -1,0 +1,14 @@
+version: '3'
+services:
+  bh-worker:
+    build:
+      dockerfile: Dockerfile-dev
+    image: tispr/bh-worker:dev
+    ports:
+      - "38280:5858"
+    volumes:
+      - ../bh-worker:/src/app
+    entrypoint:
+      - node
+      - --inspect=0.0.0.0:5858
+      - server.js

@@ -1,0 +1,14 @@
+version: '3'
+services:
+  bh-notifications:
+    build:
+      dockerfile: Dockerfile-dev
+    image: tispr/bh-notifications:dev
+    ports:
+      - "33002:5858"
+    volumes:
+      - ../bh-notifications:/src/app
+    entrypoint:
+      - node
+      - --inspect=0.0.0.0:5858
+      - server/server.js

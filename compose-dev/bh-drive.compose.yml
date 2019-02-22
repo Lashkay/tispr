@@ -1,0 +1,10 @@
+version: '3'
+services:
+  bh-drive:
+    image: tispr/bh-drive:dev
+    ports:
+      - "33000:5858"
+    entrypoint:
+      - node
+      - --inspect=0.0.0.0:5858
+      - server/server.js

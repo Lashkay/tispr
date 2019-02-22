@@ -1,0 +1,14 @@
+version: '3'
+services:
+  bh-admin:
+    build:
+      dockerfile: Dockerfile-dev
+    image: tispr/bh-admin:dev
+    ports:
+      - "38180:5858"
+    volumes:
+      - ../bh-admin:/src/app
+    entrypoint:
+      - node
+      - --inspect=0.0.0.0:5858
+      - server/server.js
